@@ -1,0 +1,3 @@
+[submodule "libarmasd-sys/armas"]
+	path = libarmasd-sys/armas
+	url = https://github.com/hrautila/armas
