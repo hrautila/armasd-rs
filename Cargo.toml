@@ -1,0 +1,12 @@
+[package]
+name = "armasd"
+version = "0.1.0"
+authors = ["Harri Rautila <harri.rautila@gmail.com>"]
+edition = "2018"
+license = "LGPL-2.1-or-later"
+description = "Column major linear algebra package."
+keywords = []
+
+[dependencies]
+libarmasd-sys = { version = "0.1.0", path = "libarmasd-sys" }
+bitflags = "1.2"
