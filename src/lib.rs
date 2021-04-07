@@ -113,7 +113,7 @@ pub enum Error {
     ESvdEigen = 13,
 }
 
-// pub mod common;
+pub mod vec;
 pub mod dense;
 pub mod pivot;
 pub mod blas;
