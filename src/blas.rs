@@ -1,7 +1,8 @@
 
 use libarmasd_sys as ffi;
 use super::{OpCodes, Norms};
-use super::dense::*;
+use super::dense::{Matrix};
+use super::vec::{Vector};
 
 /// Scale vector, x = alpha * x
 pub fn scale(x: &mut Vector, alpha: f64) -> Result<&mut Vector, i32> {

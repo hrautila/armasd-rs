@@ -2,7 +2,8 @@
 use libarmasd_sys as ffi;
 
 use super::{OpCodes};
-use super::dense::*;
+use super::dense::{Matrix};
+use super::vec::{Vector};
 use super::pivot::*;
 
 /// Compute QR factorization of matrix.
