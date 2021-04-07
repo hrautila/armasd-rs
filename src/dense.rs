@@ -4,10 +4,19 @@ use libarmasd_sys as ffi;
 use std::mem;
 use std::convert::TryInto;
 use super::{CopyOps};
+use super::vec::{Vector};
 
 #[derive(Debug)]
 pub struct Matrix {
-    data: ffi::armas_dense
+    data: ffi::armas_dense,
+    vec: Box<Vec<f64>>
+}
+
+pub struct MatrixIterator<'a> {
+    source: &'a Matrix,
+    index: u32,
+    size: u32,
+    rows: u32
 }
 
 impl Matrix {
@@ -19,60 +28,52 @@ impl Matrix {
         &mut self.data
     }
 
+    /// Create new matrix of spesificed size.
     pub fn new(rows: u32, cols: u32) -> Matrix {
         unsafe {
+            let count: usize = (rows * cols) as usize;
+            let mut vec: Vec<f64> = Vec::with_capacity(count);
+            vec.set_len(count);
             let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
-            ffi::armas_init(m.as_mut_ptr(), rows.try_into().unwrap_or(0), cols.try_into().unwrap_or(0));
-            Matrix { data: m.assume_init() }
-        }
-    }
-
-    /// Create new matrix with provided array as data. If array too small to hold rows*cols elements
-    /// then zero size matrix is returned.
-    pub fn from_array(rows: u32, cols: u32, array: &mut [f64]) -> Matrix {
-        unsafe {
-            let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
-            if ((rows * cols) as usize) < array.len() {
-                ffi::armas_make(m.as_mut_ptr(), rows as i32, cols as i32, rows as i32, array.as_mut_ptr());
-            }
-            Matrix { data: m.assume_init() }
+            ffi::armas_make(m.as_mut_ptr(), rows as i32, cols as i32, rows as i32, vec.as_mut_ptr());
+            Matrix { data: m.assume_init(), vec: Box::new(vec) }
         }
     }
 
     /// Create new matrix with provided array as data. If vector too small to hold rows*cols elements
     /// then zero size matrix is returned.
-    pub fn from_vector(rows: u32, cols: u32, mut vec: Vec<f64>) -> Matrix {
+    pub fn from_vector(rows: u32, cols: u32, vec: &mut Vec<f64>) -> Matrix {
         unsafe {
             let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
             if ((rows * cols) as usize) < vec.len() {
                 ffi::armas_make(m.as_mut_ptr(), rows as i32, cols as i32, rows as i32, vec.as_mut_ptr());
             }
-            Matrix { data: m.assume_init() }
+            Matrix { data: m.assume_init(), vec: Box::new(Vec::new()) }
         }
     }
 
     pub fn uniform(rows: u32, cols: u32) -> Matrix {
+        let mut m = Matrix::new(rows, cols);
         unsafe {
-            let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
-            ffi::armas_init(m.as_mut_ptr(), rows.try_into().unwrap_or(0), cols.try_into().unwrap_or(0));
             ffi::armas_set_all(m.as_mut_ptr(), ffi::armas_uniform, 0);
-            Matrix { data: m.assume_init() }
         }
+        m
     }
 
     pub fn normal(rows: u32, cols: u32) -> Matrix {
+        let mut m = Matrix::new(rows, cols);
         unsafe {
-            let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
-            ffi::armas_init(m.as_mut_ptr(), rows.try_into().unwrap_or(0), cols.try_into().unwrap_or(0));
             ffi::armas_set_all(m.as_mut_ptr(), ffi::armas_normal, 0);
-            Matrix { data: m.assume_init() }
         }
+        m
     }
 
     pub fn size(&self) -> (u32, u32) {
         (self.data.rows.try_into().unwrap_or(0), self.data.cols.try_into().unwrap_or(0))
     }
 
+    /// Create spesified submatrix view over  matrix. Result matrix shares storage
+    /// with the original matrix and changes on submatrix are visible in the original.
     pub fn submatrix(&self, row: u32, col: u32, nrows: u32, ncols: u32) -> Matrix {
         unsafe {
             let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
@@ -81,7 +82,7 @@ impl Matrix {
                 col.try_into().unwrap_or(0),
                 nrows.try_into().unwrap_or(0),
                 ncols.try_into().unwrap_or(0));
-            Matrix { data: m.assume_init() }
+            Matrix { data: m.assume_init(), vec: Box::new(Vec::new()) }
         }
     }
 
@@ -95,41 +96,45 @@ impl Matrix {
         self
     }
 
-    pub fn diagonal(&self, n: u32) -> Vector {
+    /// Create diagonal view over original matrix. Negative n means n'th subdiagonal and
+    /// positive n meahs n'th superdiagonal. Zero n mean main diagonal.
+    pub fn diagonal(&self, n: i32) -> Vector {
         unsafe {
             let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
-            ffi::armas_diag_unsafe(m.as_mut_ptr(), &self.data, n.try_into().unwrap_or(0));
-            Vector { data: m.assume_init() }
+            ffi::armas_diag_unsafe(m.as_mut_ptr(), &self.data, n);
+            Vector { data: m.assume_init(), vec: Box::new(Vec::new()) }
         }
     }
 
+    /// Create a row vector view of n'th row  in the original matrix.
     pub fn row(&self, n: u32) -> Vector {
         unsafe {
             let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
             ffi::armas_row_unsafe(m.as_mut_ptr(), &self.data, n.try_into().unwrap_or(0));
-            Vector { data: m.assume_init() }
+            Vector { data: m.assume_init(), vec: Box::new(Vec::new()) }
         }
     }
 
-    /// Copy self to destination.
-    /// TODO: return self or dest? With error as Result<T, E>?
+    /// Create a column vector view of n'th column in the original matrix.
     pub fn column(&self, n: i32) -> Vector {
         unsafe {
             let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
             ffi::armas_row_unsafe(m.as_mut_ptr(), &self.data, n);
-            Vector { data: m.assume_init() }
+            Vector { data: m.assume_init(), vec: Box::new(Vec::new()) }
         }
     }
 
-    pub fn get(&self, row: u32, col: u32) -> f64 {
+    /// Get element at [i, j]
+    pub fn get(&self, i: u32, j: u32) -> f64 {
         unsafe {
-            ffi::armas_get_unsafe(&self.data, row.try_into().unwrap_or(0), col.try_into().unwrap_or(0))
+            ffi::armas_get_unsafe(&self.data, i.try_into().unwrap_or(0), j.try_into().unwrap_or(0))
         }
     }
 
-    pub fn set(&mut self, row: u32, col: u32, value: f64) {
+    /// Set element at [i, j]
+    pub fn set(&mut self, i: u32, j: u32, value: f64) {
         unsafe {
-            ffi::armas_set_unsafe(&mut self.data, row.try_into().unwrap_or(0), col.try_into().unwrap_or(0), value);
+            ffi::armas_set_unsafe(&mut self.data, i.try_into().unwrap_or(0), j.try_into().unwrap_or(0), value);
         }
     }
 
@@ -137,6 +142,11 @@ impl Matrix {
         unsafe {
             ffi::armas_set_all(&mut self.data, func, 0);
         }
+    }
+
+    pub fn iter(&self) -> MatrixIterator {
+        let (rows, cols) = self.size();
+        MatrixIterator { source: self, index: 0, rows: rows, size: rows*cols }
     }
 }
 
@@ -157,73 +167,25 @@ impl Clone for Matrix {
     }
 }
 
-#[derive(Debug)]
-pub struct Vector {
-    pub data: ffi::armas_dense
-}
+impl<'a> Iterator for MatrixIterator<'a> {
+    type Item = (u32, u32, f64);
 
-impl Vector {
-    pub fn as_ptr(&self) -> *const ffi::armas_dense {
-        &self.data
-    }
-
-    pub fn as_mut_ptr(&mut self) -> *mut ffi::armas_dense {
-        &mut self.data
-    }
-
-    pub fn new(n: u32) -> Vector {
-        unsafe {
-            let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
-            ffi::armas_init(m.as_mut_ptr(), n.try_into().unwrap_or(0), 1);
-            Vector { data: m.assume_init() }
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.size {
+            return None;
         }
-    }
-
-    pub fn size(&self) -> u32 {
-        let rows: u32 = self.data.rows.try_into().unwrap_or(0);
-        let cols: u32 = self.data.cols.try_into().unwrap_or(0);
-        // note: either cols or rows is 1
-        return rows*cols;
-    }
-
-    pub fn get(&self, index: u32) -> f64 {
-        unsafe {
-            ffi::armas_get_at_unsafe(&self.data, index.try_into().unwrap_or(0))
-        }
-    }
-
-    pub fn set(&mut self, index: u32, value: f64) {
-        unsafe {
-            ffi::armas_set_at_unsafe(&mut self.data, index.try_into().unwrap_or(0), value)
-        }
-    }
-
-    /// Copy self to destination.
-    /// TODO: return self or dest? With error as Result<T, E>?
-    pub fn copy_to(&self, dst: &mut Vector) -> &Vector {
-        if self.size() != dst.size() {
-            return &self;
-        }
-        unsafe {
-            ffi::armas_mcopy(&mut dst.data, &self.data, 0);
-        }
-        self
+        let i = self.index % self.rows;
+        let j = self.index / self.rows;
+        self.index += 1;
+        Some((i, j, self.source.get(i, j)))
     }
 }
 
-impl Drop for Vector {
-    fn drop(&mut self) {
-        unsafe {
-            ffi::armas_release(&mut self.data);
-        }
+impl<'a> IntoIterator for &'a Matrix {
+    type Item = (u32, u32, f64);
+    type IntoIter = MatrixIterator<'a>;
+
+    fn into_iter(self) -> MatrixIterator<'a> {
+        self.iter()
     }
 }
-
-impl Clone for Vector {
-    fn clone(&self) -> Self {
-        let mut vec = Vector::new(self.size());
-        self.copy_to(&mut vec);
-        vec
-    }
-}
-
