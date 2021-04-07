@@ -53,6 +53,16 @@ fn test_views() {
 }
 
 #[test]
+fn test_iter() {
+    let a0 = dense::Matrix::uniform(4, 3);
+
+    for e in &a0 {
+        assert!((e.0 < 4 && e.1 < 3));
+        assert!((e.2  >= 0.0 && e.2 < 1.0));
+    }
+}
+
+#[test]
 fn test_set_all() {
     let mut m = dense::Matrix::new(5, 4);
     m.set_all(one);
