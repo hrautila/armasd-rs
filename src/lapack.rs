@@ -1,4 +1,7 @@
 
+// Allow non_snake_case variables to use upper case characters as identifier for Matrix type arguments.
+#![allow(non_snake_case)]
+
 use libarmasd_sys as ffi;
 
 use super::{OpCodes};
@@ -7,9 +10,9 @@ use super::vec::{Vector};
 use super::pivot::*;
 
 /// Compute QR factorization of matrix.
-pub fn qrfactor(a_mat: &mut Matrix, tau: &mut Vector) -> Result<(), i32> {
+pub fn qrfactor(A: &mut Matrix, tau: &mut Vector) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_qrfactor(a_mat.as_mut_ptr(), tau.as_mut_ptr(), ffi::armas_conf_default()) {
+        match ffi::armas_qrfactor(A.as_mut_ptr(), tau.as_mut_ptr(), ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -17,9 +20,9 @@ pub fn qrfactor(a_mat: &mut Matrix, tau: &mut Vector) -> Result<(), i32> {
 }
 
 /// Build the Q matrix of QR factorization.
-pub fn qrbuild(a_mat: &mut Matrix, tau: &Vector, k: u32) -> Result<(), i32> {
+pub fn qrbuild(A: &mut Matrix, tau: &Vector, k: u32) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_qrbuild(a_mat.as_mut_ptr(), tau.as_ptr(), k as i32, ffi::armas_conf_default()) {
+        match ffi::armas_qrbuild(A.as_mut_ptr(), tau.as_ptr(), k as i32, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -27,18 +30,20 @@ pub fn qrbuild(a_mat: &mut Matrix, tau: &Vector, k: u32) -> Result<(), i32> {
 }
 
 /// Multiply matrix with Q matrix of QR factorization.
-pub fn qrmult(c_mat: &mut Matrix, a_mat: &Matrix, tau: &Vector, ops: OpCodes) -> Result<(), i32> {
+pub fn qrmult(C: &mut Matrix, A: &Matrix, tau: &Vector, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_qrmult(c_mat.as_mut_ptr(), a_mat.as_ptr(), tau.as_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_qrmult(C.as_mut_ptr(), A.as_ptr(), tau.as_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
     }
 }
 
-pub fn qrsolve(c_mat: &mut Matrix, a_mat: &Matrix, tau: &Vector, ops: OpCodes) -> Result<(), i32> {
+pub fn qrsolve(C: &mut Matrix, A: &Matrix, tau: &Vector, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_qrsolve(c_mat.as_mut_ptr(), a_mat.as_ptr(), tau.as_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_qrsolve(C.as_mut_ptr(), A.as_ptr(), tau.as_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -46,9 +51,9 @@ pub fn qrsolve(c_mat: &mut Matrix, a_mat: &Matrix, tau: &Vector, ops: OpCodes) -
 }
 
 /// Compute LQ factorization of matrix.
-pub fn lqfactor(a_mat: &mut Matrix, tau: &mut Vector) -> Result<(), i32> {
+pub fn lqfactor(A: &mut Matrix, tau: &mut Vector) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_lqfactor(a_mat.as_mut_ptr(), tau.as_mut_ptr(), ffi::armas_conf_default()) {
+        match ffi::armas_lqfactor(A.as_mut_ptr(), tau.as_mut_ptr(), ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -56,9 +61,9 @@ pub fn lqfactor(a_mat: &mut Matrix, tau: &mut Vector) -> Result<(), i32> {
 }
 
 /// Build the Q matrix of LQ factorization.
-pub fn lqbuild(a_mat: &mut Matrix, tau: &Vector, k: u32) -> Result<(), i32> {
+pub fn lqbuild(A: &mut Matrix, tau: &Vector, k: u32) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_lqbuild(a_mat.as_mut_ptr(), tau.as_ptr(), k as i32, ffi::armas_conf_default()) {
+        match ffi::armas_lqbuild(A.as_mut_ptr(), tau.as_ptr(), k as i32, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -66,18 +71,20 @@ pub fn lqbuild(a_mat: &mut Matrix, tau: &Vector, k: u32) -> Result<(), i32> {
 }
 
 /// Multiply matrix with Q matrix of LQ factorization.
-pub fn lqmult(c_mat: &mut Matrix, a_mat: &Matrix, tau: &Vector, ops: OpCodes) -> Result<(), i32> {
+pub fn lqmult(C: &mut Matrix, A: &Matrix, tau: &Vector, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_lqmult(c_mat.as_mut_ptr(), a_mat.as_ptr(), tau.as_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_lqmult(C.as_mut_ptr(), A.as_ptr(), tau.as_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
     }
 }
 
-pub fn lqsolve(c_mat: &mut Matrix, a_mat: &Matrix, tau: &Vector, ops: OpCodes) -> Result<(), i32> {
+pub fn lqsolve(C: &mut Matrix, A: &Matrix, tau: &Vector, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_lqsolve(c_mat.as_mut_ptr(), a_mat.as_ptr(), tau.as_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_lqsolve(C.as_mut_ptr(), A.as_ptr(), tau.as_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -85,9 +92,10 @@ pub fn lqsolve(c_mat: &mut Matrix, a_mat: &Matrix, tau: &Vector, ops: OpCodes) -
 }
 
 /// Compute LDL^T factorization of symmetric matrix.
-pub fn ldlfactor(a_mat: &mut Matrix, pivot: &mut Pivot, ops: OpCodes) -> Result<(), i32> {
+pub fn ldlfactor(A: &mut Matrix, pivot: &mut Pivot, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_ldlfactor(a_mat.as_mut_ptr(), pivot.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_ldlfactor(A.as_mut_ptr(), pivot.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -95,9 +103,10 @@ pub fn ldlfactor(a_mat: &mut Matrix, pivot: &mut Pivot, ops: OpCodes) -> Result<
 }
 
 /// Solve X = A^{-1}*B with LDL^T factorized symmetric matrix A.
-pub fn ldlsolve(b_mat: &mut Matrix, a_mat: &Matrix, pivot: &Pivot, ops: OpCodes) -> Result<(), i32> {
+pub fn ldlsolve(B: &mut Matrix, A: &Matrix, pivot: &Pivot, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_ldlsolve(b_mat.as_mut_ptr(), a_mat.as_ptr(), pivot.as_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_ldlsolve(B.as_mut_ptr(), A.as_ptr(), pivot.as_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -105,9 +114,10 @@ pub fn ldlsolve(b_mat: &mut Matrix, a_mat: &Matrix, pivot: &Pivot, ops: OpCodes)
 }
 
 /// Inverse LDL^T factorized matrix.
-pub fn ldlinverse(a_mat: &mut Matrix, pivot: &Pivot, ops: OpCodes) -> Result<(), i32> {
+pub fn ldlinverse(A: &mut Matrix, pivot: &Pivot, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_ldlinverse(a_mat.as_mut_ptr(), pivot.as_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_ldlinverse(A.as_mut_ptr(), pivot.as_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -115,9 +125,10 @@ pub fn ldlinverse(a_mat: &mut Matrix, pivot: &Pivot, ops: OpCodes) -> Result<(),
 }
 
 /// Compute Bunch-Kauffman factorization of symmetric matrix.
-pub fn bkfactor(a_mat: &mut Matrix, pivot: &mut Pivot, ops: OpCodes) -> Result<(), i32> {
+pub fn bkfactor(A: &mut Matrix, pivot: &mut Pivot, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_ldlfactor(a_mat.as_mut_ptr(), pivot.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_ldlfactor(A.as_mut_ptr(), pivot.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -125,9 +136,10 @@ pub fn bkfactor(a_mat: &mut Matrix, pivot: &mut Pivot, ops: OpCodes) -> Result<(
 }
 
 /// Solve X = A^{-1}*B with LDL factorized symmetric matrix A.
-pub fn bksolve(b_mat: &mut Matrix, a_mat: &Matrix, pivot: &Pivot, ops: OpCodes) -> Result<(), i32> {
+pub fn bksolve(B: &mut Matrix, A: &Matrix, pivot: &Pivot, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_ldlsolve(b_mat.as_mut_ptr(), a_mat.as_ptr(), pivot.as_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_ldlsolve(B.as_mut_ptr(), A.as_ptr(), pivot.as_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -135,9 +147,9 @@ pub fn bksolve(b_mat: &mut Matrix, a_mat: &Matrix, pivot: &Pivot, ops: OpCodes) 
 }
 
 /// Compute LU factorization of  matrix.
-pub fn lufactor(a_mat: &mut Matrix, pivot: &mut Pivot) -> Result<(), i32> {
+pub fn lufactor(A: &mut Matrix, pivot: &mut Pivot) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_lufactor(a_mat.as_mut_ptr(), pivot.as_mut_ptr(), ffi::armas_conf_default()) {
+        match ffi::armas_lufactor(A.as_mut_ptr(), pivot.as_mut_ptr(), ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -145,9 +157,10 @@ pub fn lufactor(a_mat: &mut Matrix, pivot: &mut Pivot) -> Result<(), i32> {
 }
 
 /// Solve X = A^{-1}*B with LU factorized  matrix A.
-pub fn lusolve(b_mat: &mut Matrix, a_mat: &mut Matrix, pivot: &mut Pivot, ops: OpCodes) -> Result<(), i32> {
+pub fn lusolve(B: &mut Matrix, A: &mut Matrix, pivot: &mut Pivot, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_lusolve(b_mat.as_mut_ptr(), a_mat.as_mut_ptr(), pivot.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_lusolve(B.as_mut_ptr(), A.as_mut_ptr(), pivot.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -155,9 +168,9 @@ pub fn lusolve(b_mat: &mut Matrix, a_mat: &mut Matrix, pivot: &mut Pivot, ops: O
 }
 
 /// Inverse LU factorized matrix.
-pub fn luinverse(a_mat: &mut Matrix, pivot: &Pivot) -> Result<(), i32> {
+pub fn luinverse(A: &mut Matrix, pivot: &Pivot) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_luinverse(a_mat.as_mut_ptr(), pivot.as_ptr(), ffi::armas_conf_default()) {
+        match ffi::armas_luinverse(A.as_mut_ptr(), pivot.as_ptr(), ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -165,9 +178,10 @@ pub fn luinverse(a_mat: &mut Matrix, pivot: &Pivot) -> Result<(), i32> {
 }
 
 /// Compute Cholesky factorization of  matrix.
-pub fn cholfactor(a_mat: &mut Matrix, pivot: &mut Pivot, ops: OpCodes) -> Result<(), i32> {
+pub fn cholfactor(A: &mut Matrix, pivot: &mut Pivot, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_cholfactor(a_mat.as_mut_ptr(), pivot.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_cholfactor(A.as_mut_ptr(), pivot.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -175,9 +189,10 @@ pub fn cholfactor(a_mat: &mut Matrix, pivot: &mut Pivot, ops: OpCodes) -> Result
 }
 
 /// Solve X = A^{-1}*B with LU factorized  matrix A.
-pub fn cholsolve(b_mat: &mut Matrix, a_mat: &Matrix, pivot: &Pivot, ops: OpCodes) -> Result<(), i32> {
+pub fn cholsolve(B: &mut Matrix, A: &Matrix, pivot: &Pivot, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_cholsolve(b_mat.as_mut_ptr(), a_mat.as_ptr(), pivot.as_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_cholsolve(B.as_mut_ptr(), A.as_ptr(), pivot.as_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -185,9 +200,10 @@ pub fn cholsolve(b_mat: &mut Matrix, a_mat: &Matrix, pivot: &Pivot, ops: OpCodes
 }
 
 /// Compute unpivoted Cholesky factorization of matrix.
-pub fn cholesky(a_mat: &mut Matrix, ops: OpCodes) -> Result<(), i32> {
+pub fn cholesky(A: &mut Matrix, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_cholesky(a_mat.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_cholesky(A.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -195,9 +211,10 @@ pub fn cholesky(a_mat: &mut Matrix, ops: OpCodes) -> Result<(), i32> {
 }
 
 /// Rank update unpivoted Cholesky factorization of matrix.
-pub fn cholupdate(a_mat: &mut Matrix, x: &mut Vector, ops: OpCodes) -> Result<(), i32> {
+pub fn cholupdate(A: &mut Matrix, x: &mut Vector, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_cholupdate(a_mat.as_mut_ptr(), x.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_cholupdate(A.as_mut_ptr(), x.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -205,9 +222,10 @@ pub fn cholupdate(a_mat: &mut Matrix, x: &mut Vector, ops: OpCodes) -> Result<()
 }
 
 /// Inverse update unpivoted Cholesky factorized matrix.
-pub fn cholinverse(a_mat: &mut Matrix, ops: OpCodes) -> Result<(), i32> {
+pub fn cholinverse(A: &mut Matrix, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_cholinverse(a_mat.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_cholinverse(A.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -215,18 +233,19 @@ pub fn cholinverse(a_mat: &mut Matrix, ops: OpCodes) -> Result<(), i32> {
 }
 
 /// Compute Hessenberg reduction of matrix.
-pub fn hessreduce(a_mat: &mut Matrix, tau: &mut Vector) -> Result<(), i32> {
+pub fn hessreduce(A: &mut Matrix, tau: &mut Vector) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_hessreduce(a_mat.as_mut_ptr(), tau.as_mut_ptr(), ffi::armas_conf_default()) {
+        match ffi::armas_hessreduce(A.as_mut_ptr(), tau.as_mut_ptr(), ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
     }
 }
 
-pub fn hessmult(b_mat: &mut Matrix, a_mat: &Matrix, tau: &Vector, ops: OpCodes) -> Result<(), i32> {
+pub fn hessmult(B: &mut Matrix, A: &Matrix, tau: &Vector, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_hessmult(b_mat.as_mut_ptr(), a_mat.as_ptr(), tau.as_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_hessmult(B.as_mut_ptr(), A.as_ptr(), tau.as_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -234,9 +253,9 @@ pub fn hessmult(b_mat: &mut Matrix, a_mat: &Matrix, tau: &Vector, ops: OpCodes) 
 }
 
 /// Compute bidiagonal reduction A = Q*B*P^T of matrix.
-pub fn bdreduce(a_mat: &mut Matrix, tauq: &mut Vector, taup: &mut Vector) -> Result<(), i32> {
+pub fn bdreduce(A: &mut Matrix, tauq: &mut Vector, taup: &mut Vector) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_bdreduce(a_mat.as_mut_ptr(), tauq.as_mut_ptr(), taup.as_mut_ptr(), ffi::armas_conf_default()) {
+        match ffi::armas_bdreduce(A.as_mut_ptr(), tauq.as_mut_ptr(), taup.as_mut_ptr(), ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -244,9 +263,10 @@ pub fn bdreduce(a_mat: &mut Matrix, tauq: &mut Vector, taup: &mut Vector) -> Res
 }
 
 ///
-pub fn bdbuild(a_mat: &mut Matrix, tau: &Vector, k: u32, ops: OpCodes) -> Result<(), i32> {
+pub fn bdbuild(A: &mut Matrix, tau: &Vector, k: u32, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_bdbuild(a_mat.as_mut_ptr(), tau.as_ptr(), k as i32, ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_bdbuild(A.as_mut_ptr(), tau.as_ptr(), k as i32, bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -254,9 +274,10 @@ pub fn bdbuild(a_mat: &mut Matrix, tau: &Vector, k: u32, ops: OpCodes) -> Result
 }
 
 ///
-pub fn bdmult(b_mat: &mut Matrix, a_mat: &Matrix, tau: &Vector, ops: OpCodes) -> Result<(), i32> {
+pub fn bdmult(B: &mut Matrix, A: &Matrix, tau: &Vector, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_bdmult(b_mat.as_mut_ptr(), a_mat.as_ptr(), tau.as_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_bdmult(B.as_mut_ptr(), A.as_ptr(), tau.as_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -264,9 +285,10 @@ pub fn bdmult(b_mat: &mut Matrix, a_mat: &Matrix, tau: &Vector, ops: OpCodes) ->
 }
 
 /// Compute tridiagonal reduction A = Q*T*Q^T of symmetric matrix.
-pub fn trdreduce(a_mat: &mut Matrix, tau: &mut Vector, ops: OpCodes) -> Result<(), i32> {
+pub fn trdreduce(A: &mut Matrix, tau: &mut Vector, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_trdreduce(a_mat.as_mut_ptr(), tau.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_trdreduce(A.as_mut_ptr(), tau.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -274,9 +296,10 @@ pub fn trdreduce(a_mat: &mut Matrix, tau: &mut Vector, ops: OpCodes) -> Result<(
 }
 
 ///
-pub fn trdbuild(a_mat: &mut Matrix, tau: &Vector, k: u32, ops: OpCodes) -> Result<(), i32> {
+pub fn trdbuild(A: &mut Matrix, tau: &Vector, k: u32, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_trdbuild(a_mat.as_mut_ptr(), tau.as_ptr(), k as i32, ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_trdbuild(A.as_mut_ptr(), tau.as_ptr(), k as i32, bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -284,18 +307,20 @@ pub fn trdbuild(a_mat: &mut Matrix, tau: &Vector, k: u32, ops: OpCodes) -> Resul
 }
 
 ///
-pub fn trdmult(b_mat: &mut Matrix, a_mat: &Matrix, tau: &Vector, ops: OpCodes) -> Result<(), i32> {
+pub fn trdmult(B: &mut Matrix, A: &Matrix, tau: &Vector, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_trdmult(b_mat.as_mut_ptr(), a_mat.as_ptr(), tau.as_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_trdmult(B.as_mut_ptr(), A.as_ptr(), tau.as_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
     }
 }
 
-pub fn trdeigen(d: &mut Vector, e: &mut Vector, v_mat: &mut Matrix, ops: OpCodes) -> Result<(), i32> {
+pub fn trdeigen(d: &mut Vector, e: &mut Vector, V: &mut Matrix, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_trdeigen(d.as_mut_ptr(), e.as_mut_ptr(), v_mat.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_trdeigen(d.as_mut_ptr(), e.as_mut_ptr(), V.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -303,9 +328,10 @@ pub fn trdeigen(d: &mut Vector, e: &mut Vector, v_mat: &mut Matrix, ops: OpCodes
 }
 
 // Compute singular value  decomposition  B = U*S*V^T of bidiagonal matrix.
-pub fn bdsvd(d: &mut Vector, e: &mut Vector, u_mat: &mut Matrix, v_mat: &mut Matrix, ops: OpCodes) -> Result<(), i32> {
+pub fn bdsvd(d: &mut Vector, e: &mut Vector, U: &mut Matrix, V: &mut Matrix, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_bdsvd(d.as_mut_ptr(), e.as_mut_ptr(), u_mat.as_mut_ptr(), v_mat.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_bdsvd(d.as_mut_ptr(), e.as_mut_ptr(), U.as_mut_ptr(), V.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
@@ -313,18 +339,20 @@ pub fn bdsvd(d: &mut Vector, e: &mut Vector, u_mat: &mut Matrix, v_mat: &mut Mat
 }
 
 /// Compute singular value  decomposition  A = U*S*V^T of matrix.
-pub fn svd(s: &mut Vector, u_mat: &mut Matrix, v_mat: &mut Matrix, a_mat: &mut Matrix, ops: OpCodes) -> Result<(), i32> {
+pub fn svd(s: &mut Vector, U: &mut Matrix, V: &mut Matrix, A: &mut Matrix, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_svd(s.as_mut_ptr(), u_mat.as_mut_ptr(), v_mat.as_mut_ptr(), a_mat.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_svd(s.as_mut_ptr(), U.as_mut_ptr(), V.as_mut_ptr(), A.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
     }
 }
 
-pub fn eigen_sym(d: &mut Vector, e: &mut Vector, v_mat: &mut Matrix, ops: OpCodes) -> Result<(), i32> {
+pub fn eigen_sym(d: &mut Vector, A: &mut Matrix, ops: Option<OpCodes>) -> Result<(), i32> {
     unsafe {
-        match ffi::armas_trdeigen(d.as_mut_ptr(), e.as_mut_ptr(), v_mat.as_mut_ptr(), ops.bits(), ffi::armas_conf_default()) {
+        let bits = ops.unwrap_or(OpCodes::NOTRANS).bits();
+        match ffi::armas_eigen_sym(d.as_mut_ptr(), A.as_mut_ptr(), bits, ffi::armas_conf_default()) {
             0 => Ok(()),
             x => Err(-x)
         }
