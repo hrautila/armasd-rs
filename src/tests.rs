@@ -3,6 +3,9 @@
 use super::dense;
 
 #[cfg(test)]
+use super::vec;
+
+#[cfg(test)]
 use super::blas;
 
 #[cfg(test)]
@@ -60,6 +63,12 @@ fn test_iter() {
         assert!((e.0 < 4 && e.1 < 3));
         assert!((e.2  >= 0.0 && e.2 < 1.0));
     }
+
+    let v0 = vec::Vector::uniform(4);
+    for e in &v0 {
+        assert!((e.1  >= 0.0 && e.1 < 1.0));
+    }
+
 }
 
 #[test]
@@ -77,13 +86,30 @@ fn test_blas_mult() {
     let mut r0 = dense::Matrix::new(M, N);
     let mut r1 = dense::Matrix::new(N, M);
 
-    blas::mult(0.0, &mut r0, 1.0, &a0, &a1, OpCodes::NOTRANS).unwrap();
-    blas::mult(0.0, &mut r1, 1.0, &a1, &a0, OpCodes::TRANSA|OpCodes::TRANSB).unwrap();
+    blas::mult(0.0, &mut r0, 1.0, &a0, &a1, None).unwrap();
+    blas::mult(0.0, &mut r1, 1.0, &a1, &a0, Some(OpCodes::TRANSA|OpCodes::TRANSB)).unwrap();
 
     // compute r1 = r1 - r0^T = B^T*A^T - (A*B)^T ; expect |r1|_inf/|r0|_inf < epsilon
-    blas::mplus(1.0, &mut r1, -1.0, &r0, OpCodes::TRANSB).unwrap();
+    blas::mplus(1.0, &mut r1, -1.0, &r0, Some(OpCodes::TRANSB)).unwrap();
     let n0 = blas::mnorm(&r0, Norms::Infinity).unwrap();
     let n1 = blas::mnorm(&r1, Norms::Infinity).unwrap();
     assert!((n1/n0 < 2e-16));
     // println!("n0: {}, n1: {}, n1/n0: {}", n0, n1, n1/n0);
+}
+
+#[test]
+fn test_serialize() {
+    let mut v = vec::Vector::uniform(5);
+
+    let j = serde_json::to_string(&v).unwrap();
+
+    let v1: vec::Vector = serde_json::from_str(&j).unwrap();
+
+    blas::axpby(1.0, &mut v, -1.0, &v1).unwrap();
+
+    // compute relative error \v - v1\/|v|
+    let n0 = blas::norm2(&v).unwrap();
+    let n1 = blas::norm2(&v1).unwrap();
+    // println!("|v - v1|_2 = {}", n0/n1);
+    assert!((n0/n1 < 2e-16));
 }
