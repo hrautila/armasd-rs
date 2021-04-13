@@ -6,7 +6,18 @@ use std::convert::TryInto;
 use super::{CopyOps};
 use super::vec::{Vector};
 
-#[derive(Debug)]
+use serde::{Serialize, Serializer, Deserialize};
+use serde::ser::{SerializeStruct, SerializeSeq};
+
+#[derive(Deserialize)]
+struct MatrixShadow {
+    rows: u32,
+    cols: u32,
+    data: Vec<f64>
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(from = "MatrixShadow")]
 pub struct Matrix {
     data: ffi::armas_dense,
     vec: Box<Vec<f64>>
@@ -36,6 +47,16 @@ impl Matrix {
             vec.set_len(count);
             let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
             ffi::armas_make(m.as_mut_ptr(), rows as i32, cols as i32, rows as i32, vec.as_mut_ptr());
+            Matrix { data: m.assume_init(), vec: Box::new(vec) }
+        }
+    }
+
+    pub fn new_from(rows: u32, cols: u32, mut vec: Vec<f64>) -> Matrix {
+        unsafe {
+            let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
+            if ((rows * cols) as usize) < vec.len() {
+                ffi::armas_make(m.as_mut_ptr(), rows as i32, cols as i32, rows as i32, vec.as_mut_ptr());
+            }
             Matrix { data: m.assume_init(), vec: Box::new(vec) }
         }
     }
@@ -187,5 +208,46 @@ impl<'a> IntoIterator for &'a Matrix {
 
     fn into_iter(self) -> MatrixIterator<'a> {
         self.iter()
+    }
+}
+
+/// Serialize matrix elements thought MatrixIterator as the source
+/// matrix may be submatrix view of underlying matrix. Therefore the
+/// matrix elements are not necessary in sequential memory addresses.
+impl<'a> Serialize for MatrixIterator<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let (rows, _) = self.source.size();
+        let mut s = serializer.serialize_seq(Some(self.size as usize))?;
+        for index in 0..self.size {
+            let i = index % rows;
+            let j = index / rows;
+            let val = self.source.get(i, j);
+            s.serialize_element(&val)?;
+        }
+        s.end()
+    }
+}
+
+impl Serialize for Matrix {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let (rows, cols) = self.size();
+        let mut state = serializer.serialize_struct("Matrix", 3)?;
+        let iter = self.iter();
+        state.serialize_field("rows", &rows)?;
+        state.serialize_field("cols", &cols)?;
+        state.serialize_field("data", &iter)?;
+        state.end()
+    }
+}
+
+impl From<MatrixShadow> for Matrix {
+    fn from(m: MatrixShadow) -> Self {
+        Matrix::new_from(m.rows, m.cols, m.data)
     }
 }

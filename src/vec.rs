@@ -1,10 +1,18 @@
 use libarmasd_sys as ffi;
 
 use std::mem;
+// use std::fmt;
 use std::convert::TryInto;
+use serde::{Serialize, Serializer, Deserialize};
+use serde::ser::{SerializeStruct, SerializeSeq};
 
+#[derive(Deserialize)]
+struct VectorShadow {
+    vec: Vec<f64>
+}
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
+#[serde(from = "VectorShadow")]
 pub struct Vector {
     pub data: ffi::armas_dense,
     pub vec: Box<Vec<f64>>
@@ -28,9 +36,19 @@ impl Vector {
     pub fn new(n: u32) -> Vector {
         unsafe {
             let mut x: Vec<f64> = Vec::with_capacity(n as usize);
+            x.set_len(n as usize);
             let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
             ffi::armas_make(m.as_mut_ptr(), n as i32, 1, n as i32, x.as_mut_ptr());
             Vector { data: m.assume_init(), vec: Box::new(x) }
+        }
+    }
+
+    pub fn new_from(mut v: Vec<f64>) -> Self {
+        unsafe {
+            let mut m = mem::MaybeUninit::<ffi::armas_dense>::zeroed();
+            let n: u32 = v.len() as u32;
+            ffi::armas_make(m.as_mut_ptr(), n as i32, 1, n as i32, v.as_mut_ptr());
+            Vector { data: m.assume_init(), vec: Box::new(v) }
         }
     }
 
@@ -110,9 +128,10 @@ impl<'a> Iterator for VectorIterator<'a> {
         if self.index >= self.size {
             return None;
         }
+        let val = self.source.get(self.index);
         let i = self.index;
         self.index += 1;
-        Some((i, self.source.get(i)))
+        Some((i, val))
     }
 }
 
@@ -122,5 +141,40 @@ impl<'a> IntoIterator for &'a Vector {
 
     fn into_iter(self) -> VectorIterator<'a> {
         self.iter()
+    }
+}
+
+/// Serialize vector elements thought VectorIterator as the source
+/// vector may be vector view of underlying matrix. Therefore the
+/// vector elements are not necessary in sequential memory addresses.
+impl<'a> Serialize for VectorIterator<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut s = serializer.serialize_seq(Some(self.size as usize))?;
+        for i in 0..self.size {
+            let val = self.source.get(i);
+            s.serialize_element(&val)?;
+        }
+        s.end()
+    }
+}
+
+impl Serialize for Vector {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Vector", 1)?;
+        let iter = self.iter();
+        state.serialize_field("vec", &iter)?;
+        state.end()
+    }
+}
+
+impl From<VectorShadow> for Vector {
+    fn from(v: VectorShadow) -> Self {
+        Vector::new_from(v.vec)
     }
 }
